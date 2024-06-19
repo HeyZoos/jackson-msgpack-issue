@@ -37,16 +37,20 @@ public class ClientTest {
 
     @BeforeEach
     void setUpServer() {
+        byte[] bytes = convertJsonStringToMessagePack(RESPONSE_AS_JSON);
+
         stubFor(get("/json")
                 .withHeader(HttpHeaders.ACCEPT, containing(MediaType.APPLICATION_JSON))
                 .willReturn(ok()
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
                         .withBody(RESPONSE_AS_JSON)));
+
         stubFor(get("/msgpack")
                 .withHeader(HttpHeaders.ACCEPT, containing("application/x-msgpack"))
                 .willReturn(ok()
                         .withHeader(HttpHeaders.CONTENT_TYPE, "application/x-msgpack")
-                        .withBody(convertJsonStringToMessagePack(RESPONSE_AS_JSON))));
+//                        .withHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(bytes.length))
+                        .withBody(bytes)));
     }
 
     @Test
@@ -66,10 +70,16 @@ public class ClientTest {
     private static byte[] convertJsonStringToMessagePack(String jsonString) {
         try {
             final var mapper = new MessagePackMapper();
-            return mapper.writeValueAsBytes(mapper.readValue(jsonString, JsonNode.class));
+            byte[] bytes = mapper.writeValueAsBytes(mapper.readValue(jsonString, JsonNode.class));
+            System.out.println("[convertJsonStringToMessagePack] Length: " + bytes.length);
+            System.out.print("[convertJsonStringToMessagePack] Bytes: ");
+            for (byte b : bytes) {
+                System.out.printf("%02x ", b);
+            }
+            System.out.println();
+            return bytes;
         } catch (Exception ex) {
             throw new RuntimeException("Failed to convert JSON string to Message Pack", ex);
         }
-
     }
 }
